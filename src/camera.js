@@ -83,16 +83,16 @@ export function createCamera(gameWindow) {
     //handle of the zoom of the camera
     if(isRightMouseDown){
         cameraRadius += deltaY * ZOOM_SENSITIVITY;
-        cameraRadius = Math.max(MIN_CAMERA_RADIUS, Math.min(MAX_CAMERA_RADIUS, cameraRadius));
+        cameraRadius = Math.min(MAX_CAMERA_RADIUS, Math.m(MIN_CAMERA_RADIUS, cameraRadius));
         updateCameraPosition();
     }
     prevMouseX = event.clientX;
     prevMouseY = event.clientY;
   }
     function updateCameraPosition(){
-    camera.position.x = cameraRadius * Math.sin(cameraAzimuth * DEG2RAD) * Math.cos(cameraElevation * Math.PI / 360);
+    camera.position.x = cameraRadius * Math.sin(cameraAzimuth * DEG2RAD) * Math.cos(cameraElevation *  DEG2RAD);
     camera.position.y = cameraRadius * Math.sin(cameraElevation * DEG2RAD);
-    camera.position.z = cameraRadius * Math.cos(cameraAzimuth * DEG2RAD) * Math.cos(cameraElevation * Math.PI / 360);
+    camera.position.z = cameraRadius * Math.cos(cameraAzimuth * DEG2RAD) * Math.cos(cameraElevation * DEG2RAD);
     camera.position.add(cameraOrigin);
     camera.lookAt(cameraOrigin);
     camera.updateProjectionMatrix();
@@ -103,4 +103,4 @@ export function createCamera(gameWindow) {
     onMouseUp,
     onMouseMove
   };
-}
+}  

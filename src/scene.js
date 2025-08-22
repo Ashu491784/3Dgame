@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createCamera } from './camera.js';
+import {createAssetInstance } from './assets.js';
 
 export function createScene() {
    //initialize scen setup
@@ -13,20 +14,24 @@ export function createScene() {
    renderer.setSize(gameWindow.offsetWidth, gameWindow.offsetHeight);
    gameWindow.appendChild(renderer.domElement);
    
+   const reycaster = new THREE.Raycaster();
+   const mouse = new THREE.Vector2();
+   let selectObject = undefined;
+
    let terrain = [];
    let buildings = [];
+
+   let onObjectSelected = undefined;
+
    function initialize(city){
     scene.clear();
     terrain = [];
     buildings = [];
-    for (let x=0; x < city.size; x++){
+    for (let x = 0; x < city.size; x++){
         const column = [];
         for(let y = 0; y < city.size; y++){
-          //grash gemeshtry
-            const geometry = new THREE.BoxGeometry(1, 1, 1);
-            const material = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(x, -0.5, y);
+          const terrainId = city.data[x][y].terrainId;
+          const mesh = createAssetInstance(terrainId,x,y);
             scene.add(mesh);
             column.push(mesh);
           }
@@ -40,24 +45,25 @@ export function createScene() {
    function update(city){
      for (let x = 0; x < city.size; x++){
         for(let y = 0; y < city.size; y++){
-            //building gemeshtry
-            const tile = city.data[x][y];
-            if(tile.building && tile.building.startsWith('building')){
-            const height = Number(tile.building.slice(-1));  
-            const buildingGeometry = new THREE.BoxGeometry(1, height, 1);
-            const buildingMaterial = new THREE.MeshLambertMaterial({ color: 0x777777 });
-            const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
-            buildingMesh.position.set(x, height / 2, y);
+          const currentBuildingId = buildings[x][y]?.userData.id;
+          const newBuildingId = city.data[x][y].buildingId; 
+          
+          //if the player removes a building, remove it from the scene
+          if(!newBuildingId && currentBuildingId){
+            scene.remove(buildings[x][y]);
+            buildings[x][y] = undefined;
+          }
 
-            if(buildings [x][y]){
-              scene.remove(buildings[x][y]);
-            }
-            scene.add(buildingMesh);
-            buildings[x][y] = buildingMesh;
-            }
-          }        
+          //if the data model has changed, update the mesh
+          if(newBuildingId && newBuildingId !== currentBuildingId){
+            scene.remove(buildings[x][y]);
+            buildings[x][y] = createAssetInstance(newBuildingId,x,y);
+            scene.add(buildings[x][y]);
+          }
+        }
     }
-   }
+  }
+
 
    function setupLight(){
     const lights = [
@@ -84,8 +90,23 @@ export function createScene() {
   }
 
   function onMouseDown(event) {
- 
    camera.onMouseDown(event);
+
+   mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+   mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+   reycaster.setFromCamera(mouse, camera.camera);
+
+   let intersection = reycaster.intersectObjects(scene.children, false);
+   if (intersection.length > 0) {
+    if(selectObject) selectObject.material.emissive.setHex(0);
+     selectObject = intersection[0].object;
+     selectObject.material.emissive.setHex(0x555555);
+     console.log(selectObject.userData)
+
+     if(this.onObjectSelected){
+      this.onObjectSelected(selectObject);
+     }
+   }
   }
 
   function onMouseUp(event){
@@ -96,6 +117,7 @@ export function createScene() {
   }
   
   return {
+    onObjectSelected,
     initialize,
     update,
     start,

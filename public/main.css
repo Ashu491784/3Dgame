@@ -1,6 +1,9 @@
 html, body {
   height: 100%;
   margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1f1f1f, #2c2c2c);
+  color: #fff;
 }
 
 #root-window {
@@ -11,6 +14,51 @@ html, body {
 #render-target {
   height: 100%;
   width: 100%;
-  display: block;  
-  overflow: hidden; 
+  display: block;
+  overflow: hidden;
+}
+
+#ui-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 180px;
+  height: 100vh;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.4);
+}
+
+.ui-button {
+  display: block;
+  width: 120px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 15px;
+  margin: 8px 0;
+  text-align: center;
+  line-height: 36px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ui-button.selected {
+  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+  color: #111;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(255, 126, 95, 0.4);
+}
+
+.ui-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(5px);
+}
+
+.ui-button:not(.selected):hover {
+  background: rgba(255, 255, 255, 0.25);
 }

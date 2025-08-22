@@ -89,22 +89,25 @@ export function createScene() {
     renderer.setAnimationLoop(null);
   }
 
-  function onMouseDown(event) {
+     function onMouseDown(event) {
    camera.onMouseDown(event);
 
-   mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
-   mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
-   reycaster.setFromCamera(mouse, camera.camera);
+   // Always handle building selection on left mouse down
+   if (event.button === 0) { // Left mouse button
+     mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+     mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+     reycaster.setFromCamera(mouse, camera.camera);
 
-   let intersection = reycaster.intersectObjects(scene.children, false);
-   if (intersection.length > 0) {
-    if(selectObject) selectObject.material.emissive.setHex(0);
-     selectObject = intersection[0].object;
-     selectObject.material.emissive.setHex(0x555555);
-     console.log(selectObject.userData)
+     let intersection = reycaster.intersectObjects(scene.children, false);
+     if (intersection.length > 0) {
+      if(selectObject) selectObject.material.emissive.setHex(0);
+       selectObject = intersection[0].object;
+       selectObject.material.emissive.setHex(0x555555);
+       console.log(selectObject.userData)
 
-     if(this.onObjectSelected){
-      this.onObjectSelected(selectObject);
+       if(this.onObjectSelected){
+        this.onObjectSelected(selectObject);
+       }
      }
    }
   }
@@ -124,6 +127,15 @@ export function createScene() {
     stop,
     onMouseDown,
     onMouseUp,
-    onMouseMove
+    onMouseMove,
+    camera,
+    setPickedUpBuilding: (building) => {
+      // Visual feedback for picked up building
+      if (building) {
+        console.log(`Picked up ${building.type} building from (${building.x}, ${building.y})`);
+      } else {
+        console.log('No building picked up');
+      }
+    }
   }
 }

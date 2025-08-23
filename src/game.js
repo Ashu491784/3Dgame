@@ -13,8 +13,11 @@ export function createGame () {
         let {x, y} = selectedObject.userData;
         const tile = city.data[x][y];
 
+        console.log(`Tool selected: ${activeToolId}, Tile at (${x}, ${y}):`, tile);
+
         if(activeToolId === 'bulldoze') {
             // Bulldoze: remove building
+            console.log(`Bulldozing building at (${x}, ${y})`);
             tile.buildingId = undefined;
             scene.update(city);
         } else if(activeToolId === 'move') {
@@ -35,8 +38,14 @@ export function createGame () {
             }
         } else if(!tile.buildingId) {
             // Regular building placement
+            console.log(`Placing ${activeToolId} building at (${x}, ${y})`);
+            console.log(`Before placement - tile:`, tile);
             tile.buildingId = activeToolId;
+            console.log(`After placement - tile:`, tile);
+            console.log(`City data at (${x}, ${y}):`, city.data[x][y]);
             scene.update(city);
+        } else {
+            console.log(`Cannot place ${activeToolId} at (${x}, ${y}) - tile already occupied by ${tile.buildingId}`);
         }
     }
     document.addEventListener('mousedown', scene.onMouseDown.bind(scene), false);

@@ -43,6 +43,7 @@ export function createScene() {
    }
 
    function update(city){
+     console.log('Scene update called');
      for (let x = 0; x < city.size; x++){
         for(let y = 0; y < city.size; y++){
           const currentBuildingId = buildings[x][y]?.userData.id;
@@ -50,13 +51,17 @@ export function createScene() {
           
           //if the player removes a building, remove it from the scene
           if(!newBuildingId && currentBuildingId){
+            console.log(`Removing building at (${x}, ${y}): ${currentBuildingId}`);
             scene.remove(buildings[x][y]);
             buildings[x][y] = undefined;
           }
 
           //if the data model has changed, update the mesh
           if(newBuildingId && newBuildingId !== currentBuildingId){
-            scene.remove(buildings[x][y]);
+            console.log(`Creating/updating building at (${x}, ${y}): ${newBuildingId} (was: ${currentBuildingId})`);
+            if (buildings[x][y]) {
+              scene.remove(buildings[x][y]);
+            }
             buildings[x][y] = createAssetInstance(newBuildingId,x,y);
             scene.add(buildings[x][y]);
           }
@@ -89,10 +94,9 @@ export function createScene() {
     renderer.setAnimationLoop(null);
   }
 
-     function onMouseDown(event) {
+  function onMouseDown(event) {
    camera.onMouseDown(event);
 
-   // Always handle building selection on left mouse down
    if (event.button === 0) { // Left mouse button
      mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
      mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;

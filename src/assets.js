@@ -11,7 +11,7 @@ const assets = {
             return mesh;
     },
     'residential': (x, y) => {
-            const material = new THREE.MeshLambertMaterial({ color:  0xbb5555 });
+            const material = new THREE.MeshLambertMaterial({ color: 0xbb5555 });
             const mesh = new THREE.Mesh(geometry, material);
             mesh.userData = { id: 'residential', x, y };
             mesh.position.set(x, 0.5, y);
@@ -20,7 +20,7 @@ const assets = {
     'commercial': (x, y) => {
             const material = new THREE.MeshLambertMaterial({ color:  0xbbbb55 });
             const mesh = new THREE.Mesh(geometry, material);
-            mesh.userData = { id: 'commercial' , x, y };
+            mesh.userData = { id: 'commercial', x, y };
             mesh.position.set(x, 0.5, y);
             return mesh;
     },

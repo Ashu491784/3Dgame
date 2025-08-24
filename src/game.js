@@ -1,5 +1,6 @@
 import { createScene } from './scene.js';
 import { createcity } from './city.js';
+import { buildingFactory } from './buildings.js';
 
 export function createGame () {
     let activeToolId = '';
@@ -10,42 +11,47 @@ export function createGame () {
 
     scene.initialize(city);
     scene.onObjectSelected = (selectedObject) => {
-        let {x, y} = selectedObject.userData;
-        const tile = city.data[x][y];
+        try {
+            let {x, y} = selectedObject.userData;
+            const tile = city.data[x][y];
 
-        console.log(`Tool selected: ${activeToolId}, Tile at (${x}, ${y}):`, tile);
+            console.log(`Tool selected: ${activeToolId}, Tile at (${x}, ${y}):`, tile);
 
-        if(activeToolId === 'bulldoze') {
-            // Bulldoze: remove building
-            console.log(`Bulldozing building at (${x}, ${y})`);
-            tile.buildingId = undefined;
-            scene.update(city);
-        } else if(activeToolId === 'move') {
-            // Move mode: pick up building or place it
-            if (pickedUpBuilding && !tile.buildingId) {
-                // Place the picked up building
-                tile.buildingId = pickedUpBuilding.type;
-                console.log(`Placed ${pickedUpBuilding.type} building at (${x}, ${y})`);
-                pickedUpBuilding = null;
-                scene.setPickedUpBuilding(null);
+            if(activeToolId === 'bulldoze') {
+                // Bulldoze: remove building
+                console.log(`Bulldozing building at (${x}, ${y})`);
+                tile.building = undefined;
                 scene.update(city);
-            } else if (tile.buildingId && !pickedUpBuilding) {
-                // Pick up this building
-                pickedUpBuilding = { type: tile.buildingId, x: x, y: y };
-                tile.buildingId = undefined;
-                scene.setPickedUpBuilding(pickedUpBuilding);
-                scene.update(city);
+            } else if(activeToolId === 'move') {
+                // Move mode: pick up building or place it
+                if (pickedUpBuilding && !tile.building) {
+                    // Place the picked up building
+                    tile.building = pickedUpBuilding;
+                    console.log(`Placed ${pickedUpBuilding.id} building at (${x}, ${y})`);
+                    pickedUpBuilding = null;
+                    scene.setPickedUpBuilding(null);
+                    scene.update(city);
+                } else if (tile.building && !pickedUpBuilding) {
+                    // Pick up this building
+                    pickedUpBuilding = tile.building;
+                    tile.building = undefined;
+                    scene.setPickedUpBuilding(pickedUpBuilding);
+                    scene.update(city);
+                }
+            } else if(!tile.building) {
+                // Regular building placement
+                if (buildingFactory[activeToolId]) {
+                    console.log(`Placing ${activeToolId} building at (${x}, ${y})`);
+                    tile.building = buildingFactory[activeToolId]();
+                    scene.update(city);
+                } else {
+                    console.error(`Unknown building type: ${activeToolId}`);
+                }
+            } else {
+                console.log(`Cannot place ${activeToolId} at (${x}, ${y}) - tile already occupied by ${tile.building.id}`);
             }
-        } else if(!tile.buildingId) {
-            // Regular building placement
-            console.log(`Placing ${activeToolId} building at (${x}, ${y})`);
-            console.log(`Before placement - tile:`, tile);
-            tile.buildingId = activeToolId;
-            console.log(`After placement - tile:`, tile);
-            console.log(`City data at (${x}, ${y}):`, city.data[x][y]);
-            scene.update(city);
-        } else {
-            console.log(`Cannot place ${activeToolId} at (${x}, ${y}) - tile already occupied by ${tile.buildingId}`);
+        } catch (error) {
+            console.error('Error in onObjectSelected:', error);
         }
     }
     document.addEventListener('mousedown', scene.onMouseDown.bind(scene), false);

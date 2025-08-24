@@ -12,6 +12,9 @@ export function createScene() {
 
    const renderer = new THREE.WebGLRenderer();
    renderer.setSize(gameWindow.offsetWidth, gameWindow.offsetHeight);
+   renderer.setClearColor(0x000000, 0);
+   renderer.shadowMap.enabled = true;
+   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
    gameWindow.appendChild(renderer.domElement);
    
    const reycaster = new THREE.Raycaster();
@@ -43,44 +46,56 @@ export function createScene() {
    }
 
    function update(city){
-     console.log('Scene update called');
-     for (let x = 0; x < city.size; x++){
-        for(let y = 0; y < city.size; y++){
-          const currentBuildingId = buildings[x][y]?.userData.id;
-          const newBuildingId = city.data[x][y].buildingId; 
-          
-          //if the player removes a building, remove it from the scene
-          if(!newBuildingId && currentBuildingId){
-            console.log(`Removing building at (${x}, ${y}): ${currentBuildingId}`);
-            scene.remove(buildings[x][y]);
-            buildings[x][y] = undefined;
-          }
-
-          //if the data model has changed, update the mesh
-          if(newBuildingId && newBuildingId !== currentBuildingId){
-            console.log(`Creating/updating building at (${x}, ${y}): ${newBuildingId} (was: ${currentBuildingId})`);
-            if (buildings[x][y]) {
+     try {
+       for (let x = 0; x < city.size; x++){
+          for(let y = 0; y < city.size; y++){
+            const tile = city.data[x][y];
+            const existingBuildingMesh = buildings[x][y];
+            
+            //if the player removes a building, remove it from the scene
+            if(!tile.building && existingBuildingMesh){
+              console.log(`Removing building at (${x}, ${y})`);
               scene.remove(buildings[x][y]);
+              buildings[x][y] = undefined;
             }
-            buildings[x][y] = createAssetInstance(newBuildingId,x,y);
-            scene.add(buildings[x][y]);
+
+            //if the data model has changed, update the mesh
+            if(tile.building && tile.building.updated){
+              console.log(`Creating/updating building at (${x}, ${y}): ${tile.building.id}`);
+              if (existingBuildingMesh) {
+                scene.remove(existingBuildingMesh);
+              }
+              const newBuildingMesh = createAssetInstance(tile.building.id, x, y, tile.building);
+              if (newBuildingMesh) {
+                buildings[x][y] = newBuildingMesh;
+                scene.add(buildings[x][y]);
+                tile.building.updated = false;
+              } else {
+                console.error(`Failed to create building mesh for ${tile.building.id} at (${x}, ${y})`);
+              }
+            }
           }
-        }
-    }
-  }
+      }
+     } catch (error) {
+       console.error('Error in scene update:', error);
+     }
+   }
 
 
    function setupLight(){
-    const lights = [
-      new THREE.AmbientLight(0xffffff, 0.2),
-      new THREE.DirectionalLight(0xffffff, 0.3),
-      new THREE.DirectionalLight(0xffffff, 0.3),
-      new THREE.DirectionalLight(0xffffff, 0.3)
-    ];
-    lights[1].position.set(0, 1, 0);
-    lights[2].position.set(1, 1, 0);
-    lights[3].position.set(0, 1, 1);
-    scene.add(...lights);
+    const sun = new THREE.DirectionalLight(0xffffff, 1);
+    sun.position.set(20, 20, 20); // Position the light
+    sun.castShadow = true;
+    sun.shadow.camera.left = -10;
+    sun.shadow.camera.right = 10;
+    sun.shadow.camera.top = 0;
+    sun.shadow.camera.bottom = -10;
+    sun.shadow.camera.width = 1024;
+    sun.shadow.camera.height = 1024;
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 50;
+    scene.add(sun);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
 
    }
   function draw() {

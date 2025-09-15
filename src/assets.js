@@ -5,30 +5,46 @@ const cube = new THREE.BoxGeometry(1, 1, 1);
 let loader = new THREE.TextureLoader();
 
 function loadTexture(url){
-        const tex = loader.load(url);
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(1, 1);
-        return tex;
-}
-const Textures = {
-        grass: loadTexture('./public/textures/grass.jpg'),
-        'residential': loadTexture('./public/textures/residntial1.jpg'),
-        'residential': loadTexture('./public/textures/residntial2.jpg'),
-        'residential': loadTexture('./public/textures/residntial3.jpg'),
-        'commercial': loadTexture('./public/textures/commercial.jpg'),
-        'commercial': loadTexture('./public/textures/commercial.jpg'),
-        'commercial': loadTexture('./public/textures/commercial.jpg'),
-        'industrial': loadTexture('./public/textures/industrial.jpg'),
-        'industrial': loadTexture('./public/textures/industrial.jpg'),
-        'industrial': loadTexture('./public/textures/industrial.jpg'),
-}
-function getTopMeterial(){
-        return new THREE.MeshLambertMaterial({color: 0x5555555 });
+        try {
+            const tex = loader.load(url);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(1, 1);
+            return tex;
+        } catch (error) {
+            console.error(`Failed to load texture: ${url}`, error);
+            // Return a default texture or create a colored material
+            return null;
+        }
 }
 
-function getSideMeterial(textureName){
-        return new THREE.MeshLambertMaterial({map: Textures[textureName].clone()});
+const Textures = {
+        'grass': loadTexture('./public/textture/grass.jpg'),
+        'residential1': loadTexture('./public/textture/residntial1.avif'),
+        'residential2': loadTexture('./public/textture/residntial2.webp'),
+        'residential3': loadTexture('./public/textture/residntial3.jpg'),
+        'commercial1': loadTexture('./public/textture/commercial1.jpg'),
+        'commercial2': loadTexture('./public/textture/commercial2.jpg'),
+        'industrial1': loadTexture('./public/textture/industrial1.webp'),
+        'industrial2': loadTexture('./public/textture/indestrial2.webp'),
+        'industrial3': loadTexture('./public/textture/industrial3.webp'),
+}
+
+// Log loaded textures
+console.log('Loaded textures:', Object.keys(Textures));
+console.log('Texture objects:', Textures);
+
+function getTopMaterial(){
+        return new THREE.MeshLambertMaterial({color: 0x555555});
+}
+
+function getSideMaterial(textureName){
+        if (Textures[textureName]) {
+            return new THREE.MeshLambertMaterial({map: Textures[textureName]});
+        } else {
+            console.warn(`Texture ${textureName} not found, using fallback color`);
+            return new THREE.MeshLambertMaterial({color: 0x888888});
+        }
 }
 
 /**
@@ -61,40 +77,110 @@ const assets = {
             mesh.position.set(x, -0.5, y);
             mesh.receiveShadow = true;
             return mesh;
-},
-        'residential': (x,y, data) => createZoomMesh(x,y,data),
-        'commercial': (x,y, data) => createZoomMesh(x,y,data),
-        'industrial': (x,y, data) => createZoomMesh(x,y,data),
-        'road': (x, y) => {
-            const material = new THREE.MeshLambertMaterial({color: 0x2222222});
-            const mesh = new THREE.Mesh(cube, material);
-            mesh.userData = {  x, y };
-            mesh.position.set(x, 0.01, y);
-            mesh.receiveShadow = true;
-            return mesh;
+        },
+        'residential': (x,y, data) => createBuildingMesh(x,y,data),
+        'commercial': (x,y, data) => createBuildingMesh(x,y,data),
+        'industrial': (x,y, data) => createBuildingMesh(x,y,data),
+        'road': (x, y, data) => {
+            // Create a flat road plate
+            const roadGeometry = new THREE.PlaneGeometry(1, 1);
+            const roadMaterial = new THREE.MeshLambertMaterial({color: 0x333333}); // Dark gray for roads
+            const roadMesh = new THREE.Mesh(roadGeometry, roadMaterial);
+            roadMesh.userData = { x, y };
+            roadMesh.rotation.x = -Math.PI / 2; // Rotate to be horizontal
+            roadMesh.position.set(x, 0.025, y); // Slightly above ground
+            roadMesh.receiveShadow = true;
+            roadMesh.castShadow = false;
+            return roadMesh;
         }
 }
 
-function createZoomMesh(x,y,data) {
-   const textureName = data.type = data.style;
-   const topMaterial = getTopMeterial();
-   const sideMaterial = getSideMeterial(textureName);
- 
-   let materialArray = [
-        sideMaterial,
-        sideMaterial,
-        topMaterial,
-        topMaterial,
-        sideMaterial,
-        sideMaterial
-   ];
-   let mesh = new THREE.Mesh(cube, materialArray);
-   mesh.userData = {  x, y };
-   mesh.position.set(0.0, (data.height - 0.95) / 2, 0.8);
-   mesh.material.forEach(material => material.map?.repeal.set(1, data.height - 1));
-   mesh.position.set(x, (data.height - 0.95) / 4, y);
+function createBuildingMesh(x,y,data) {
+   const textureName = `${data.type}${data.style}`;
+   console.log(`Creating building mesh for ${data.type} type ${data.buildingType} with texture: ${textureName}`);
+   
+   let mesh;
+   
+   if (data.buildingType === 1) {
+       // Building Type 1: Traditional rectangular building with pitched roof
+       const buildingGeometry = new THREE.BoxGeometry(data.width, data.height, data.depth);
+       
+       // Check if texture exists
+       if (!Textures[textureName]) {
+           console.warn(`Texture ${textureName} not found, using fallback`);
+           // Use a fallback texture
+           const fallbackTexture = Textures[`${data.type}1`] || Textures.grass;
+           const material = new THREE.MeshLambertMaterial({map: fallbackTexture});
+           mesh = new THREE.Mesh(buildingGeometry, material);
+       } else {
+           const topMaterial = getTopMaterial();
+           const sideMaterial = getSideMaterial(textureName);
+           
+           let materialArray = [
+                sideMaterial,
+                sideMaterial,
+                topMaterial,
+                topMaterial,
+                sideMaterial,
+                sideMaterial
+           ];
+           
+           mesh = new THREE.Mesh(buildingGeometry, materialArray);
+       }
+       
+       mesh.position.set(x, (data.height - 1) / 2, y);
+       
+       // Add a pitched roof for traditional buildings
+       const roofGeometry = new THREE.ConeGeometry(data.width * 0.7, data.height * 0.3, 4);
+       const roofMaterial = new THREE.MeshLambertMaterial({color: 0x8B4513}); // Brown roof
+       const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+       roof.position.set(0, data.height / 2 + data.height * 0.15, 0);
+       roof.rotation.y = Math.PI / 4; // Rotate roof to align with building
+       mesh.add(roof);
+       
+   } else {
+       // Building Type 2: Modern tower with different proportions and flat roof
+       const towerGeometry = new THREE.BoxGeometry(data.width * 0.8, data.height * 1.2, data.depth * 0.8);
+       
+       // Check if texture exists
+       if (!Textures[textureName]) {
+           console.warn(`Texture ${textureName} not found, using fallback`);
+           // Use a fallback texture
+           const fallbackTexture = Textures[`${data.type}1`] || Textures.grass;
+           const material = new THREE.MeshLambertMaterial({map: fallbackTexture});
+           mesh = new THREE.Mesh(towerGeometry, material);
+       } else {
+           const topMaterial = getTopMaterial();
+           const sideMaterial = getSideMaterial(textureName);
+           
+           let materialArray = [
+                sideMaterial,
+                sideMaterial,
+                topMaterial,
+                topMaterial,
+                sideMaterial,
+                sideMaterial
+           ];
+           
+           mesh = new THREE.Mesh(towerGeometry, materialArray);
+       }
+       
+       // Position tower buildings slightly higher and add some variation
+       mesh.position.set(x, (data.height * 1.2 - 1) / 2, y);
+       
+       // Add some rotation for variety
+       mesh.rotation.y = Math.PI / 4; // 45-degree rotation
+       
+       // Add antenna or spire for modern towers
+       const antennaGeometry = new THREE.CylinderGeometry(0.02, 0.02, data.height * 0.4, 8);
+       const antennaMaterial = new THREE.MeshLambertMaterial({color: 0x666666}); // Gray antenna
+       const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
+       antenna.position.set(0, data.height * 1.2 / 2 + data.height * 0.2, 0);
+       mesh.add(antenna);
+   }
+   
+   mesh.userData = { x, y };
    mesh.castShadow = true;
    mesh.receiveShadow = false;
    return mesh;
-
 }

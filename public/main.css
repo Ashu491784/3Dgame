@@ -1,14 +1,17 @@
+/* Reset styles */
 html, body {
   height: 100%;
   margin: 0;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #1f1f1f, #2c2c2c);
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #1a1a1a;
   color: #fff;
+  overflow: hidden;
 }
 
 #root-window {
   height: 100%;
   width: 100%;
+  position: relative;
 }
 
 #render-target {
@@ -16,49 +19,182 @@ html, body {
   width: 100%;
   display: block;
   overflow: hidden;
+  position: relative;
 }
 
+/* ==== Toolbar ==== */
 #ui-toolbar {
   position: absolute;
   top: 0;
   left: 0;
-  width: 180px;
+  width: 160px;
   height: 100vh;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(10px);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 12px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
+/* Toolbar buttons */
 .ui-button {
-  display: block;
-  width: 120px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   color: #fff;
-  font-size: 15px;
-  margin: 8px 0;
+  font-size: 14px;
+  font-weight: bold;
   text-align: center;
-  line-height: 36px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.ui-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.ui-button:active {
+  transform: scale(0.95);
+}
+
+.ui-button.selected {
+  background: rgba(0, 200, 255, 0.35);
+  border: 1px solid rgba(0, 200, 255, 0.6);
+  box-shadow: 0 0 12px rgba(0, 200, 255, 0.6);
+}
+
+/* ==== Info panel ==== */
+#info-panel.ui-container {
+  position: fixed;
+  bottom: 20px;
+  left: 190px;
+  width: 300px;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  max-height: 400px;
+  overflow-y: auto;
+  cursor: move;
+  user-select: none;
+  z-index: 1000;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  will-change: left, top;
+}
+
+#info-panel.ui-container:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+#info-panel.ui-container.dragging {
+  cursor: grabbing;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(0, 200, 255, 0.6);
+  transition: none;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Smooth transition when not dragging */
+#info-panel.ui-container:not(.dragging) {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+#info-panel h1 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 1px;
+  color: #00d4ff;
+  text-shadow: 0 0 6px rgba(0, 200, 255, 0.8);
+  cursor: move;
+}
+
+#info-panel h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  color: #00d4ff;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+  padding-bottom: 5px;
+}
+
+#selected-object-info {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #f1f1f1;
+}
+
+#selected-object-info p {
+  margin: 8px 0;
+  padding: 5px 0;
+}
+
+#selected-object-info strong {
+  color: #00d4ff;
+  font-weight: 600;
+}
+
+#selected-object-info ul {
+  margin: 10px 0;
+  padding-left: 20px;
+}
+
+#selected-object-info li {
+  margin: 5px 0;
+  color: #e0e0e0;
+}
+
+#selected-object-info .current-tool {
+  color: #00ff88;
+  font-weight: bold;
+}
+
+/* Drag handle indicator */
+#info-panel::before {
+  content: "⋮⋮";
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  font-weight: bold;
+  pointer-events: none;
+}
+
+/* ==== Pause button ==== */
+#button-pause {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 12px 24px;
+  border-radius: 14px;
+  background: rgba(255, 0, 0, 0.25);
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  border: 1px solid rgba(255, 0, 0, 0.4);
+  box-shadow: 0 6px 20px rgba(255, 0, 0, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.ui-button.selected {
-  background: linear-gradient(135deg, #ff7e5f, #feb47b);
-  color: #111;
-  font-weight: bold;
-  box-shadow: 0 4px 12px rgba(255, 126, 95, 0.4);
+#button-pause:hover {
+  background: rgba(255, 0, 0, 0.45);
+  transform: scale(1.05);
 }
 
-.ui-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateX(5px);
-}
-
-.ui-button:not(.selected):hover {
-  background: rgba(255, 255, 255, 0.25);
+#button-pause:active {
+  transform: scale(0.95);
 }

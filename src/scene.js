@@ -61,17 +61,31 @@ export function createScene() {
 
             //if the data model has changed, update the mesh
             if(tile.building && tile.building.updated){
-              console.log(`Creating/updating building at (${x}, ${y}): ${tile.building.id}`);
+              console.log(`Creating/updating building at (${x}, ${y}):`, tile.building);
               if (existingBuildingMesh) {
                 scene.remove(existingBuildingMesh);
               }
-              const newBuildingMesh = createAssetInstance(tile.building.id, x, y, tile.building);
+              const newBuildingMesh = createAssetInstance(tile.building.type, x, y, tile.building);
               if (newBuildingMesh) {
                 buildings[x][y] = newBuildingMesh;
                 scene.add(buildings[x][y]);
                 tile.building.updated = false;
+                
+                // Special handling for roads to ensure they look flat
+                if (tile.building.type === 'road') {
+                  newBuildingMesh.position.y = 0.025; // Keep roads very close to ground
+                  newBuildingMesh.rotation.x = -Math.PI / 2; // Ensure horizontal orientation
+                }
+                
+                // Ensure the mesh has proper material setup
+                if (!newBuildingMesh.material) {
+                  console.warn(`Mesh at (${x}, ${y}) has no material, adding fallback`);
+                  const fallbackMaterial = new THREE.MeshLambertMaterial({color: 0x888888});
+                  newBuildingMesh.material = fallbackMaterial;
+                }
               } else {
-                console.error(`Failed to create building mesh for ${tile.building.id} at (${x}, ${y})`);
+                console.error(`Failed to create building mesh for ${tile.building.type} at (${x}, ${y})`);
+                console.error(`Building data:`, tile.building);
               }
             }
           }
@@ -109,6 +123,66 @@ export function createScene() {
     renderer.setAnimationLoop(null);
   }
 
+  function onResize(){
+    camera.camera.aspect = gameWindow.offsetWidth / gameWindow.offsetHeight;
+    camera.camera.updateProjectionMatrix();
+    renderer.setSize(gameWindow.offsetWidth, gameWindow.offsetHeight);
+  }
+
+  function setHeightObject(object){
+    if(hoverObject && hoverObject !==  activeObject) {
+      setObjectEmmossion(hoverObject, 0x000000);
+    }
+    hoverObject = object;
+
+    if(hoverObject) {
+      setObjectEmmossion(hoverObject, 0x555555);
+    }
+  }
+
+  function setObjectEmmossion(object, color) {
+    if (!hasValidMaterial(object)) return;
+    
+    try {
+      if (Array.isArray(object.material)) {
+        // Handle material arrays (like buildings with multiple materials)
+        object.material.forEach(mat => {
+          if (mat && mat.emissive) {
+            mat.emissive.setHex(color);
+          }
+        });
+      } else if (object.material.emissive) {
+        // Handle single material
+        object.material.emissive.setHex(color);
+      }
+    } catch (error) {
+      console.warn('Could not set material emission:', error);
+    }
+  }
+
+  function hasValidMaterial(object) {
+    if (!object) return false;
+    if (!object.material) return false;
+    
+    if (Array.isArray(object.material)) {
+      return object.material.some(mat => mat && mat.emissive);
+    } else {
+      return object.material.emissive !== undefined;
+    }
+  }
+
+  function getSelectedObject(event){
+    mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+    mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+    reycaster.setFromCamera(mouse, camera.camera);
+    let intersection = reycaster.intersectObjects(scene.children, false);
+    if (intersection.length > 0) {
+      return intersection[0].object;
+    } else {
+      return null;
+    }
+  }
+
   function onMouseDown(event) {
    camera.onMouseDown(event);
 
@@ -119,14 +193,43 @@ export function createScene() {
 
      let intersection = reycaster.intersectObjects(scene.children, false);
      if (intersection.length > 0) {
-      if(selectObject) selectObject.material.emissive.setHex(0);
-       selectObject = intersection[0].object;
-       selectObject.material.emissive.setHex(0x555555);
-       console.log(selectObject.userData)
+      // Clear previous selection highlight
+      if(selectObject && hasValidMaterial(selectObject)) {
+        if (Array.isArray(selectObject.material)) {
+          // Handle material arrays (like buildings with multiple materials)
+          selectObject.material.forEach(mat => {
+            if (mat && mat.emissive) {
+              mat.emissive.setHex(0);
+            }
+          });
+        } else if (selectObject.material.emissive) {
+          // Handle single material
+          selectObject.material.emissive.setHex(0);
+        }
+      }
+      
+      selectObject = intersection[0].object;
+      
+      // Set new selection highlight
+      if(selectObject && hasValidMaterial(selectObject)) {
+        if (Array.isArray(selectObject.material)) {
+          // Handle material arrays
+          selectObject.material.forEach(mat => {
+            if (mat && mat.emissive) {
+              mat.emissive.setHex(0x555555);
+            }
+          });
+        } else if (selectObject.material.emissive) {
+          // Handle single material
+          selectObject.material.emissive.setHex(0x555555);
+        }
+      }
+      
+      console.log(selectObject.userData)
 
-       if(this.onObjectSelected){
-        this.onObjectSelected(selectObject);
-       }
+      if(this.onObjectSelected){
+       this.onObjectSelected(selectObject);
+      }
      }
    }
   }
@@ -140,6 +243,7 @@ export function createScene() {
   
   return {
     onObjectSelected,
+    getSelectedObject,
     initialize,
     update,
     start,

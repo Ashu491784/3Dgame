@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>City Builder Game</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="./public/main.css">
 <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
@@ -20,32 +20,383 @@
     <div id="root-window">
         <div id="render-target">
             <div id="ui-toolbar">
-            <button id="button-bulldoze" class="ui-button selected" onclick="setActiveTool(event, 'bulldoze')">BULLDOZE</button>
-            <button id="button-move" class="ui-button" onclick="setActiveTool(event, 'move')">MOVE</button>
-            <button id="button-residential" class="ui-button" onclick="setActiveTool(event, 'residential')">RESIDENTIAL</button>
-            <button id="button-commercial" class="ui-button" onclick="setActiveTool(event, 'commercial')">COMMERCIAL</button>
-            <button id="button-industrial" class="ui-button" onclick="setActiveTool(event, 'industrial')">INDUSTRIAL</button>
-            <button id="button-road" class="ui-button" onclick="setActiveTool(event, 'road')">ROAD</button>
+                <button id="button-select" class="ui-button selected" data-type="select" onclick="setActiveTool(event, 'select')">SELECT</button>
+                <button id="button-bulldoze" class="ui-button" data-type="bulldoze" onclick="setActiveTool(event, 'bulldoze')">BULLDOZE</button>
+                <button id="button-residential" class="ui-button" data-type="residential" onclick="setActiveTool(event, 'residential')">RESIDENTIAL</button>
+                <button id="button-commercial" class="ui-button" data-type="commercial" onclick="setActiveTool(event, 'commercial')">COMMERCIAL</button>
+                <button id="button-industrial" class="ui-button" data-type="industrial" onclick="setActiveTool(event, 'industrial')">INDUSTRIAL</button>
+                <button id="button-road" class="ui-button" data-type="road" onclick="setActiveTool(event, 'road')">ROAD</button>
+                
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                    <h4 style="margin: 0 0 10px 0; color: #00d4ff; font-size: 12px; text-align: center;">CAMERA VIEWS</h4>
+                    <button onclick="setCameraView('top')" style="width: 100%; margin-bottom: 8px; padding: 8px; background: rgba(0, 200, 255, 0.3); border: 1px solid rgba(0, 200, 255, 0.5); color: white; border-radius: 6px; cursor: pointer; font-size: 11px;">TOP VIEW</button>
+                    <button onclick="setCameraView('side')" style="width: 100%; margin-bottom: 8px; padding: 8px; background: rgba(0, 200, 255, 0.3); border: 1px solid rgba(0, 200, 255, 0.5); color: white; border-radius: 6px; cursor: pointer; font-size: 11px;">SIDE VIEW</button>
+                    <button onclick="setCameraView('reset')" style="width: 100%; margin-bottom: 8px; padding: 8px; background: rgba(0, 200, 255, 0.3); border: 1px solid rgba(0, 200, 255, 0.5); color: white; border-radius: 6px; cursor: pointer; font-size: 11px;">RESET CAMERA</button>
+                </div>
             </div>
+
+            <div id="info-panel" class="ui-container">
+                <h1>INFO <span style="font-size: 12px; color: #888;">(Drag to move)</span></h1>
+                <div id="selected-object-info">
+                    <h3>Welcome to City Builder</h3>
+                    <p><strong>Instructions:</strong></p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Select a tool from the left toolbar</li>
+                        <li>Click on the 3D terrain to place buildings/roads</li>
+                        <li>Use SELECT to view tile information</li>
+                        <li>Use BULLDOZE to remove structures</li>
+                        <li><strong>💡 Tip:</strong> Drag this panel anywhere you want!</li>
+                        <li><strong>💡 Tip:</strong> Double-click to reset position</li>
+                        <li><strong>💡 Tip:</strong> Use Ctrl+I to toggle, Ctrl+R to reset</li>
+                    </ul>
+                    <p><strong>Current Tool:</strong> <span id="current-tool-display">SELECT</span></p>
+                    <div style="background: rgba(0, 200, 255, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px; border-left: 3px solid #00d4ff;">
+                        <strong>🎯 Draggable Panel:</strong><br>
+                        • Click and drag the panel header to move it<br>
+                        • Position it anywhere on screen<br>
+                        • Your position is automatically saved<br>
+                        • Works while building buildings!
+                    </div>
+                    
+                    <div style="background: rgba(255, 200, 0, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px; border-left: 3px solid #ffc800;">
+                        <strong>📷 Camera Controls:</strong><br>
+                        • <strong>T key:</strong> Top view (perfect for building)<br>
+                        • <strong>S key:</strong> Side view (see building heights)<br>
+                        • <strong>R key:</strong> Reset camera position<br>
+                        • <strong>B key:</strong> Optimal building placement view<br>
+                        • <strong>Mouse:</strong> Left=drag, Right=pan, Middle=zoom
+                    </div>
+                </div>
+                <button onclick="testBuildingSystem()" style="margin-top: 10px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Test Building System</button>
+            </div>
+            <button id="button-pause" class="ui-button" onclick="window.game.togglePause()">PAUSE</button>
         </div>
     </div>
 
     <script type="module">
         import { createGame } from './src/game.js';
 
-        let selectedControl = document.getElementById('button-bulldoze');
-       window.onload = () =>{
-        window.game = createGame();
-       } 
-
-       window.setActiveTool = (event, toolId) => {
-        if (selectedControl){
-            selectedControl.classList.remove('selected');
+        let selectedControl = document.getElementById('button-select');
+        
+        window.onload = () => {
+            window.game = createGame();
         }
-        selectedControl = event.target;
-        selectedControl.classList.add('selected');
-        window.game.setActiveTool(toolId);
-       }
+        
+        // Test function to verify building system
+        window.testBuildingSystem = () => {
+            console.log('Testing building system...');
+            if (window.game) {
+                console.log('Game instance found');
+                // Test creating a residential building
+                const testBuilding = {
+                    type: 'residential',
+                    style: 1,
+                    height: 1,
+                    updated: true
+                };
+                console.log('Test building:', testBuilding);
+            } else {
+                console.log('Game instance not found');
+            }
+        }
+        
+        // Make info panel draggable
+        function makeInfoPanelDraggable() {
+            const infoPanel = document.getElementById('info-panel');
+            let isDragging = false;
+            let currentX;
+            let currentY;
+            let initialX;
+            let initialY;
+            let xOffset = 0;
+            let yOffset = 0;
+            
+            // Set initial position to absolute positioning
+            infoPanel.style.position = 'fixed';
+            infoPanel.style.left = '190px';
+            infoPanel.style.bottom = '20px';
+            infoPanel.style.top = 'auto';
+            infoPanel.style.transform = 'none';
+            
+            // Load saved position from localStorage
+            const savedPosition = localStorage.getItem('infoPanelPosition');
+            if (savedPosition) {
+                const pos = JSON.parse(savedPosition);
+                infoPanel.style.left = pos.x + 'px';
+                infoPanel.style.top = pos.y + 'px';
+                infoPanel.style.bottom = 'auto';
+                xOffset = pos.x;
+                yOffset = pos.y;
+            }
+            
+            function dragStart(e) {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                    return; // Don't start dragging if clicking on buttons
+                }
+                
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+                
+                if (e.target === infoPanel || infoPanel.contains(e.target)) {
+                    isDragging = true;
+                    infoPanel.classList.add('dragging');
+                }
+            }
+            
+            function dragEnd(e) {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+                infoPanel.classList.remove('dragging');
+                
+                // Save position to localStorage
+                const position = {
+                    x: xOffset,
+                    y: yOffset
+                };
+                localStorage.setItem('infoPanelPosition', JSON.stringify(position));
+            }
+            
+            function drag(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                    
+                    xOffset = currentX;
+                    yOffset = currentY;
+                    
+                    // Constrain to viewport bounds
+                    const rect = infoPanel.getBoundingClientRect();
+                    const maxX = window.innerWidth - rect.width;
+                    const maxY = window.innerHeight - rect.height;
+                    
+                    xOffset = Math.max(0, Math.min(xOffset, maxX));
+                    yOffset = Math.max(0, Math.min(yOffset, maxY));
+                    
+                    // Use direct positioning instead of transform
+                    infoPanel.style.left = xOffset + 'px';
+                    infoPanel.style.top = yOffset + 'px';
+                    infoPanel.style.bottom = 'auto';
+                }
+            }
+            
+            // Add event listeners
+            infoPanel.addEventListener('mousedown', dragStart);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', dragEnd);
+            
+            // Touch support for mobile devices
+            infoPanel.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                dragStart({ clientX: touch.clientX, clientY: touch.clientY, target: e.target });
+            });
+            
+            document.addEventListener('touchmove', (e) => {
+                const touch = e.touches[0];
+                drag({ clientX: touch.clientX, clientY: touch.clientY, preventDefault: () => e.preventDefault() });
+            });
+            
+            document.addEventListener('touchend', dragEnd);
+            
+            // Double-click to reset position
+            infoPanel.addEventListener('dblclick', () => {
+                infoPanel.style.left = '190px';
+                infoPanel.style.bottom = '20px';
+                infoPanel.style.top = 'auto';
+                infoPanel.style.transform = 'none';
+                xOffset = 0;
+                yOffset = 0;
+                localStorage.removeItem('infoPanelPosition');
+            });
+        }
+        
+        // Initialize draggable info panel when page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                makeInfoPanelDraggable();
+                console.log('Info panel draggable functionality initialized');
+                
+                // Test the draggable functionality
+                const infoPanel = document.getElementById('info-panel');
+                if (infoPanel) {
+                    console.log('Info panel found and ready for dragging');
+                    console.log('Current position:', infoPanel.style.left, infoPanel.style.top);
+                } else {
+                    console.error('Info panel not found!');
+                }
+            }, 100); // Small delay to ensure DOM is ready
+        });
+        
+        // Add keyboard shortcuts for info panel
+        document.addEventListener('keydown', (e) => {
+            const infoPanel = document.getElementById('info-panel');
+            
+            // Ctrl/Cmd + I to toggle info panel visibility
+            if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+                e.preventDefault();
+                infoPanel.style.display = infoPanel.style.display === 'none' ? 'block' : 'none';
+            }
+            
+            // Ctrl/Cmd + R to reset info panel position
+            if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                e.preventDefault();
+                infoPanel.style.left = '190px';
+                infoPanel.style.bottom = '20px';
+                infoPanel.style.top = 'auto';
+                infoPanel.style.transform = 'none';
+                localStorage.removeItem('infoPanelPosition');
+            }
+            
+            // Escape to hide info panel
+            if (e.key === 'Escape') {
+                infoPanel.style.display = 'none';
+            }
+            
+            // Camera positioning shortcuts
+            if (window.game && window.game.scene && window.game.scene.camera) {
+                const camera = window.game.scene.camera;
+                
+                // T for Top View (perfect for building placement)
+                if (e.key.toLowerCase() === 't') {
+                    e.preventDefault();
+                    camera.setTopDownView();
+                    console.log('Camera set to TOP VIEW (T key)');
+                }
+                
+                // S for Side View
+                if (e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    camera.setSideView();
+                    console.log('Camera set to SIDE VIEW (S key)');
+                }
+                
+                // R for Reset Camera
+                if (e.key.toLowerCase() === 'r' && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    camera.resetCamera();
+                    console.log('Camera reset to default (R key)');
+                }
+                
+                // B for Building Placement Camera
+                if (e.key.toLowerCase() === 'b') {
+                    e.preventDefault();
+                    camera.setBuildingPlacementCamera();
+                    console.log('Camera set to optimal building placement position (B key)');
+                }
+            }
+        });
+        
+        // Add a floating help button
+        function createFloatingHelp() {
+            const helpButton = document.createElement('div');
+            helpButton.innerHTML = '?';
+            helpButton.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+                background: rgba(0, 200, 255, 0.8);
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                font-weight: bold;
+                cursor: pointer;
+                z-index: 999;
+                box-shadow: 0 4px 12px rgba(0, 200, 255, 0.4);
+                transition: all 0.2s ease;
+            `;
+            
+            helpButton.addEventListener('click', () => {
+                const infoPanel = document.getElementById('info-panel');
+                infoPanel.style.display = 'block';
+                infoPanel.style.left = '50%';
+                infoPanel.style.top = '50%';
+                infoPanel.style.bottom = 'auto';
+                infoPanel.style.transform = 'translate(-50%, -50%)';
+                
+                // Update the offset variables
+                const rect = infoPanel.getBoundingClientRect();
+                xOffset = rect.left;
+                yOffset = rect.top;
+            });
+            
+            helpButton.addEventListener('mouseenter', () => {
+                helpButton.style.background = 'rgba(0, 200, 255, 1)';
+                helpButton.style.transform = 'scale(1.1)';
+            });
+            
+            helpButton.addEventListener('mouseleave', () => {
+                helpButton.style.background = 'rgba(0, 200, 255, 0.8)';
+                helpButton.style.transform = 'scale(1)';
+            });
+            
+            document.body.appendChild(helpButton);
+        }
+        
+        // Create floating help button
+        window.addEventListener('load', () => {
+            setTimeout(createFloatingHelp, 200);
+        });
+        
+        // Camera view control functions
+        window.setCameraView = (viewType) => {
+            if (window.game && window.game.scene && window.game.scene.camera) {
+                const camera = window.game.scene.camera;
+                
+                switch(viewType) {
+                    case 'top':
+                        camera.setTopDownView();
+                        console.log('Camera set to TOP VIEW - perfect for building placement!');
+                        break;
+                    case 'side':
+                        camera.setSideView();
+                        console.log('Camera set to SIDE VIEW - good for seeing building heights!');
+                        break;
+                    case 'reset':
+                        camera.resetCamera();
+                        console.log('Camera reset to default position');
+                        break;
+                    default:
+                        console.log('Unknown camera view:', viewType);
+                }
+            } else {
+                console.log('Game or camera not ready yet');
+            }
+        };
+        
+        // Enhanced tool selection with camera positioning
+        const originalSetActiveTool = window.setActiveTool;
+        window.setActiveTool = (event, toolId) => {
+            if (selectedControl){
+                selectedControl.classList.remove('selected');
+            }
+            selectedControl = event.target;
+            selectedControl.classList.add('selected');
+            window.game.setActiveTool(toolId);
+            
+            // Update the current tool display
+            const toolDisplay = document.getElementById('current-tool-display');
+            if (toolDisplay) {
+                toolDisplay.textContent = toolId.toUpperCase();
+            }
+            
+            // Auto-set camera to optimal building placement view
+            if (toolId === 'residential' || toolId === 'commercial' || toolId === 'industrial' || toolId === 'road') {
+                // Small delay to ensure camera is ready
+                setTimeout(() => {
+                    if (window.game && window.game.scene && window.game.scene.camera) {
+                        window.game.scene.camera.setBuildingPlacementCamera();
+                        console.log(`Camera positioned for ${toolId} building placement`);
+                    }
+                }, 100);
+            }
+        };
     </script>
 </body>
 </html>
